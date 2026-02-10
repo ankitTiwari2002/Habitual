@@ -1,17 +1,19 @@
 "use client";
 
 import { useUser, useAuth } from '@/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, LayoutDashboard, User, LogOut, Settings, BarChart } from 'lucide-react';
 import { signOut } from 'firebase/auth';
+import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -32,6 +34,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
+  const navItems = [
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Statistics', href: '/dashboard/stats', icon: BarChart },
+    { label: 'Profile', href: '/dashboard/profile', icon: User },
+    { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+  ];
+
   return (
     <div className="flex min-h-screen bg-secondary/20">
       {/* Mobile Top Nav */}
@@ -48,23 +57,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <CheckCircle2 className="h-7 w-7 text-primary" />
           <span className="font-bold text-xl font-headline">Habitual</span>
         </div>
-        <nav className="flex-1 px-4 space-y-2 py-4">
-          <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg bg-primary/10 text-primary">
-            <LayoutDashboard className="h-5 w-5" />
-            Dashboard
-          </Link>
-          <Link href="/dashboard/stats" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted transition-colors">
-            <BarChart className="h-5 w-5" />
-            Statistics
-          </Link>
-          <Link href="/dashboard/profile" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted transition-colors">
-            <User className="h-5 w-5" />
-            Profile
-          </Link>
-          <Link href="/dashboard/settings" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted transition-colors">
-            <Settings className="h-5 w-5" />
-            Settings
-          </Link>
+        <nav className="flex-1 px-4 space-y-1 py-4">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  isActive 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="p-4 border-t">
           <div className="flex items-center gap-3 px-3 py-4">
