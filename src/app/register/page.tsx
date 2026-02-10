@@ -23,6 +23,21 @@ export default function RegisterPage() {
   const auth = useAuth();
   const db = useFirestore();
 
+  const getFriendlyErrorMessage = (error: any) => {
+    switch (error.code) {
+      case 'auth/email-already-in-use':
+        return "This email is already registered. Try logging in instead.";
+      case 'auth/invalid-email':
+        return "Please enter a valid email address.";
+      case 'auth/weak-password':
+        return "Password is too weak. Please use at least 6 characters.";
+      case 'auth/network-request-failed':
+        return "Network error. Please check your connection.";
+      default:
+        return "Could not create account. Please try again.";
+    }
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -40,11 +55,16 @@ export default function RegisterPage() {
         createdAt: new Date().toISOString()
       });
 
+      toast({
+        title: "Success!",
+        description: "Your account has been successfully created. Welcome aboard!",
+      });
+
       router.push('/dashboard');
     } catch (error: any) {
       toast({
         title: "Registration Failed",
-        description: error.message,
+        description: getFriendlyErrorMessage(error),
         variant: "destructive"
       });
     } finally {

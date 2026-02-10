@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, Mail, Lock } from 'lucide-react';
+import { CheckCircle2, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
@@ -20,6 +20,23 @@ export default function LoginPage() {
   const { toast } = useToast();
   const auth = useAuth();
 
+  const getFriendlyErrorMessage = (error: any) => {
+    switch (error.code) {
+      case 'auth/invalid-credential':
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+        return "Invalid email or password. Please check your credentials and try again.";
+      case 'auth/user-disabled':
+        return "This account has been disabled.";
+      case 'auth/too-many-requests':
+        return "Too many failed attempts. Please try again later.";
+      case 'auth/network-request-failed':
+        return "Network error. Please check your internet connection.";
+      default:
+        return "An unexpected error occurred. Please try again.";
+    }
+  };
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -29,7 +46,7 @@ export default function LoginPage() {
     } catch (error: any) {
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: getFriendlyErrorMessage(error),
         variant: "destructive"
       });
     } finally {
@@ -45,7 +62,7 @@ export default function LoginPage() {
     } catch (error: any) {
       toast({
         title: "Google Login Failed",
-        description: error.message,
+        description: "Could not sign in with Google. Please try again.",
         variant: "destructive"
       });
     }
