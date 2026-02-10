@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -20,6 +20,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const db = useFirestore();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +32,9 @@ export default function RegisterPage() {
       
       await updateProfile(user, { displayName: name });
       
+      // The security rules require the document data to have an 'id' field matching the document ID
       await setDoc(doc(db, 'users', user.uid), {
+        id: user.uid,
         name,
         email,
         createdAt: new Date().toISOString()

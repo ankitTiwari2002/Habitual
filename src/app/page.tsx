@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/AuthContext';
+import { useUser } from '@/firebase';
 import { Sparkles, CheckCircle2, Flame, BarChart3, ArrowRight } from 'lucide-react';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user } = useUser();
 
   return (
     <div className="flex flex-col min-h-screen">

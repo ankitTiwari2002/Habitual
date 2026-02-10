@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2, Plus, Zap } from 'lucide-react';
 import { getPersonalizedHabitSuggestions } from '@/ai/flows/personalized-habit-suggestions';
 import { Habit } from '@/hooks/useHabits';
-import { useAuth } from '@/context/AuthContext';
+import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface AISuggestionsProps {
@@ -14,7 +14,7 @@ interface AISuggestionsProps {
 }
 
 export function AISuggestions({ habits }: AISuggestionsProps) {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();

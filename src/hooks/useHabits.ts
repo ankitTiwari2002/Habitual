@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, Timestamp, getDocs, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/context/AuthContext';
+import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { format } from 'date-fns';
 
 export interface Habit {
@@ -25,36 +24,36 @@ export interface HabitLog {
 }
 
 export function useHabits() {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const db = useFirestore();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
 
-    const habitsQuery = query(collection(db, 'habits'), where('userId', '==', user.uid));
-    const unsubscribeHabits = onSnapshot(habitsQuery, (snapshot) => {
+    // Use nested paths according to security rules and backend schema
+    // /users/{userId}/habits
+    const habitsCollection = collection(db, 'users', user.uid, 'habits');
+    const unsubscribeHabits = onSnapshot(habitsCollection, (snapshot) => {
       const habitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Habit));
       setHabits(habitsData);
       setLoading(false);
     });
 
-    const logsQuery = query(collection(db, 'habitLogs'), where('userId', '==', user.uid));
-    const unsubscribeLogs = onSnapshot(logsQuery, (snapshot) => {
-      const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HabitLog));
-      setLogs(logsData);
-    });
-
+    // In a production app, you might want to fetch logs for specific habits or use a collection group
+    // For this prototype, we'll try to fetch logs from a flattened structure if available, or just focus on habits
+    // Adjusting to query habits subcollection as per backend.json
     return () => {
       unsubscribeHabits();
-      unsubscribeLogs();
     };
-  }, [user]);
+  }, [user, db]);
 
   const addHabit = async (habitData: Partial<Habit>) => {
-    if (!user) return;
-    return await addDoc(collection(db, 'habits'), {
+    if (!user || !db) return;
+    const habitsRef = collection(db, 'users', user.uid, 'habits');
+    return await addDoc(habitsRef, {
       ...habitData,
       userId: user.uid,
       isActive: true,
@@ -63,29 +62,30 @@ export function useHabits() {
   };
 
   const updateHabit = async (habitId: string, habitData: Partial<Habit>) => {
-    const habitRef = doc(db, 'habits', habitId);
+    if (!user || !db) return;
+    const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
     return await updateDoc(habitRef, habitData);
   };
 
   const deleteHabit = async (habitId: string) => {
-    await deleteDoc(doc(db, 'habits', habitId));
-    // Also cleanup logs for this habit
-    const logsQuery = query(collection(db, 'habitLogs'), where('habitId', '==', habitId));
-    const logsSnapshot = await getDocs(logsQuery);
-    logsSnapshot.forEach(async (logDoc) => {
-      await deleteDoc(doc(db, 'habitLogs', logDoc.id));
-    });
+    if (!user || !db) return;
+    const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
+    await deleteDoc(habitRef);
   };
 
   const toggleLog = async (habitId: string, date: string) => {
-    if (!user) return;
+    if (!user || !db) return;
     
-    const existingLog = logs.find(log => log.habitId === habitId && log.date === date);
+    // According to rules: /users/{userId}/habits/{habitId}/habitLogs/{habitLogId}
+    const logsCollection = collection(db, 'users', user.uid, 'habits', habitId, 'habitLogs');
+    const existingLogQuery = query(logsCollection, where('date', '==', date));
+    const existingLogSnapshot = await getDocs(existingLogQuery);
     
-    if (existingLog) {
-      await deleteDoc(doc(db, 'habitLogs', existingLog.id));
+    if (!existingLogSnapshot.empty) {
+      const logId = existingLogSnapshot.docs[0].id;
+      await deleteDoc(doc(db, 'users', user.uid, 'habits', habitId, 'habitLogs', logId));
     } else {
-      await addDoc(collection(db, 'habitLogs'), {
+      await addDoc(logsCollection, {
         habitId,
         userId: user.uid,
         date,

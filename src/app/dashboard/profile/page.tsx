@@ -1,14 +1,13 @@
 "use client";
 
-import { useAuth } from '@/context/AuthContext';
+import { useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Mail, Calendar } from 'lucide-react';
-import { format } from 'date-fns';
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user } = useUser();
 
   if (!user) return null;
 

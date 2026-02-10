@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +39,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
+      const googleProvider = new GoogleAuthProvider();
       await signInWithPopup(auth, googleProvider);
       router.push('/dashboard');
     } catch (error: any) {

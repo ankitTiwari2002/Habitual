@@ -10,14 +10,19 @@ import { AISuggestions } from '@/components/dashboard/AISuggestions';
 import { AddHabitDialog } from '@/components/habits/AddHabitDialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function DashboardPage() {
   const { habits, logs, loading, toggleLog, addHabit, updateHabit, deleteHabit } = useHabits();
   const stats = useStats(habits, logs);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
 
-  if (loading) {
+  useEffect(() => {
+    setCurrentDate(new Date());
+  }, []);
+
+  if (loading || !currentDate) {
     return (
       <div className="grid gap-6">
         <div className="h-40 rounded-xl bg-card animate-pulse" />
@@ -30,14 +35,14 @@ export default function DashboardPage() {
     );
   }
 
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = format(currentDate, 'yyyy-MM-dd');
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-headline">Daily Habits</h1>
-          <p className="text-muted-foreground">Stay consistent. Today is {format(new Date(), 'MMMM do, yyyy')}</p>
+          <p className="text-muted-foreground">Stay consistent. Today is {format(currentDate, 'MMMM do, yyyy')}</p>
         </div>
         <Button onClick={() => setIsAddDialogOpen(true)} className="rounded-full shadow-lg hover:shadow-primary/20">
           <Plus className="mr-2 h-5 w-5" /> Add New Habit
