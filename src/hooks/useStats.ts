@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo } from 'react';
 import { Habit, HabitLog } from './useHabits';
-import { format, subDays, differenceInDays, parseISO, isSameDay } from 'date-fns';
+import { format, subDays, differenceInDays, parseISO } from 'date-fns';
 
 export function useStats(habits: Habit[], logs: HabitLog[]) {
   const stats = useMemo(() => {
@@ -13,24 +14,24 @@ export function useStats(habits: Habit[], logs: HabitLog[]) {
         .filter(l => l.habitId === habit.id)
         .sort((a, b) => b.date.localeCompare(a.date));
 
-      let currentStreak = 0;
-      let lastDate = new Date();
-      
-      // Calculate current streak
       const sortedDates = habitLogs.map(l => l.date);
       
+      // Calculate current streak
+      let currentStreak = 0;
       let checkDate = new Date();
+      
+      // If today isn't logged, we still might have a streak from yesterday
+      const todayStr = format(checkDate, 'yyyy-MM-dd');
+      if (!sortedDates.includes(todayStr)) {
+        checkDate = subDays(checkDate, 1);
+      }
+
       while (true) {
         const dateStr = format(checkDate, 'yyyy-MM-dd');
         if (sortedDates.includes(dateStr)) {
           currentStreak++;
           checkDate = subDays(checkDate, 1);
         } else {
-          // If today isn't logged, we still might have a streak from yesterday
-          if (dateStr === today && currentStreak === 0) {
-            checkDate = subDays(checkDate, 1);
-            continue;
-          }
           break;
         }
       }
@@ -38,7 +39,7 @@ export function useStats(habits: Habit[], logs: HabitLog[]) {
       // Calculate best streak
       let bestStreak = 0;
       let tempStreak = 0;
-      const allDatesSorted = [...sortedDates].sort((a, b) => a.localeCompare(b));
+      const allDatesSorted = [...new Set(sortedDates)].sort((a, b) => a.localeCompare(b));
       
       for (let i = 0; i < allDatesSorted.length; i++) {
         if (i === 0) {
@@ -56,7 +57,10 @@ export function useStats(habits: Habit[], logs: HabitLog[]) {
       }
 
       const totalCompleted = habitLogs.length;
-      const daysSinceCreated = differenceInDays(new Date(), habit.createdAt.toDate()) + 1;
+      
+      // Safe creation date handling
+      const createdDate = habit.createdAt?.toDate ? habit.createdAt.toDate() : (habit.createdAt ? new Date(habit.createdAt) : new Date());
+      const daysSinceCreated = differenceInDays(new Date(), createdDate) + 1;
       const completionRate = Math.round((totalCompleted / Math.max(daysSinceCreated, 1)) * 100);
 
       return {
