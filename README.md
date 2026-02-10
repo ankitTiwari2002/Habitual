@@ -51,3 +51,4 @@ Master your days and transform your life with Habitual. An AI-powered habit trac
 - `src/ai`: Genkit flows and AI prompt definitions.
 - `src/hooks`: Custom React hooks for habits, stats, and mobile detection.
 - `src/firebase`: Firebase client initialization and utility functions.
+# Habitual
