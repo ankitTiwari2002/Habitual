@@ -1,15 +1,17 @@
+
 "use client";
 
 import { useState } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, Mail, Lock, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Mail, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
@@ -19,6 +21,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const db = useFirestore();
 
   const getFriendlyErrorMessage = (error: any) => {
     switch (error.code) {
@@ -27,11 +30,13 @@ export default function LoginPage() {
       case 'auth/wrong-password':
         return "Invalid email or password. Please check your credentials and try again.";
       case 'auth/user-disabled':
-        return "This account has been disabled.";
+        return "This account has been disabled. Please contact support.";
       case 'auth/too-many-requests':
         return "Too many failed attempts. Please try again later.";
       case 'auth/network-request-failed':
         return "Network error. Please check your internet connection.";
+      case 'auth/popup-closed-by-user':
+        return "Login popup was closed. Please try again.";
       default:
         return "An unexpected error occurred. Please try again.";
     }
@@ -57,12 +62,33 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     try {
       const googleProvider = new GoogleAuthProvider();
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Ensure user profile exists in Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+          id: user.uid,
+          name: user.displayName || 'User',
+          email: user.email,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      toast({
+        title: "Success",
+        description: "Logged in successfully!",
+      });
+
       router.push('/dashboard');
     } catch (error: any) {
+      console.error(error);
       toast({
         title: "Google Login Failed",
-        description: "Could not sign in with Google. Please try again.",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive"
       });
     }
@@ -88,7 +114,7 @@ export default function LoginPage() {
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="m@example.com" 
+                  placeholder="name@example.com" 
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

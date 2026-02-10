@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -47,7 +48,7 @@ export default function RegisterPage() {
       
       await updateProfile(user, { displayName: name });
       
-      // The security rules require the document data to have an 'id' field matching the document ID
+      // Create the user profile in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         id: user.uid,
         name,
@@ -56,7 +57,7 @@ export default function RegisterPage() {
       });
 
       toast({
-        title: "Success!",
+        title: "Success! ✅",
         description: "Your account has been successfully created. Welcome aboard!",
       });
 
@@ -106,7 +107,7 @@ export default function RegisterPage() {
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="m@example.com" 
+                  placeholder="name@example.com" 
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
