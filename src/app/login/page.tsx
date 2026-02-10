@@ -20,11 +20,16 @@ export default function LoginPage() {
   const { toast } = useToast();
   const auth = useAuth();
 
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   const getFriendlyErrorMessage = (error: any) => {
     switch (error.code) {
       case 'auth/invalid-credential':
       case 'auth/user-not-found':
       case 'auth/wrong-password':
+      case 'auth/invalid-email':
         return "Invalid email or password. Please check your credentials and try again.";
       case 'auth/user-disabled':
         return "This account has been disabled. Please contact support.";
@@ -39,6 +44,26 @@ export default function LoginPage() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Client-side validation
+    if (!validateEmail(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!password) {
+      toast({
+        title: "Password Required",
+        description: "Please enter your password.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);

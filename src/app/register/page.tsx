@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -24,6 +23,10 @@ export default function RegisterPage() {
   const auth = useAuth();
   const db = useFirestore();
 
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   const getFriendlyErrorMessage = (error: any) => {
     switch (error.code) {
       case 'auth/email-already-in-use':
@@ -41,6 +44,35 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Client-side validation
+    if (!name.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter your full name.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address (e.g., name@example.com).",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -128,6 +160,7 @@ export default function RegisterPage() {
                   required 
                 />
               </div>
+              <p className="text-[10px] text-muted-foreground">Minimum 6 characters</p>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Create Account"}
