@@ -1,0 +1,189 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Habitual application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "createdAt"
+      ]
+    },
+    "Habit": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Habit",
+      "type": "object",
+      "description": "Represents a habit being tracked by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the habit entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who owns this habit. (Relationship: User 1:N Habit)"
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the habit."
+        },
+        "description": {
+          "type": "string",
+          "description": "A more detailed description of the habit."
+        },
+        "frequency": {
+          "type": "string",
+          "description": "The frequency with which the habit should be performed (e.g., daily, weekly)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the habit was created.",
+          "format": "date-time"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "A boolean indicating whether the habit is currently active."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "title",
+        "description",
+        "frequency",
+        "createdAt",
+        "isActive"
+      ]
+    },
+    "HabitLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "HabitLog",
+      "type": "object",
+      "description": "Represents a log of a user's habit completion on a specific date.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the habit log entry."
+        },
+        "habitId": {
+          "type": "string",
+          "description": "Reference to the Habit being logged. (Relationship: Habit 1:N HabitLog)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who performed the habit. (Relationship: User 1:N HabitLog)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date on which the habit was logged (YYYY-MM-DD).",
+          "format": "date"
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "A boolean indicating whether the habit was completed on the given date."
+        }
+      },
+      "required": [
+        "id",
+        "habitId",
+        "userId",
+        "date",
+        "completed"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  Only the authenticated user can access their profile data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/habits/{habitId}",
+        "definition": {
+          "entityName": "Habit",
+          "schema": {
+            "$ref": "#/backend/entities/Habit"
+          },
+          "description": "Stores habits owned by a specific user.  Only the user who owns the habit can access it.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "habitId",
+              "description": "The unique identifier of the habit."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/habits/{habitId}/habitLogs/{habitLogId}",
+        "definition": {
+          "entityName": "HabitLog",
+          "schema": {
+            "$ref": "#/backend/entities/HabitLog"
+          },
+          "description": "Stores habit logs for a specific habit. Maintains the user-habit-habitLog relationship, ensuring clear ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "habitId",
+              "description": "The unique identifier of the habit."
+            },
+            {
+              "name": "habitLogId",
+              "description": "The unique identifier of the habit log."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support the required QAPs, and provide a clear and predictable data model for the Habitual application. It leverages path-based ownership and segregation for enhanced security and simplified security rules. The database structure is:\n\n`/users/{userId}`: Stores user profiles. Security rules will ensure that only the authenticated user can access their own profile data.\n\n`/users/{userId}/habits/{habitId}`: Stores habits owned by a specific user. This path-based ownership simplifies security rules, ensuring that only the user who owns the habit can access it.\n\n`/users/{userId}/habits/{habitId}/habitLogs/{habitLogId}`: Stores habit logs for a specific habit. This nested structure maintains the user-habit-habitLog relationship, ensuring clear ownership and simplifies access control.\n\nAuthorization Independence: The design enforces authorization independence by ensuring that each document's access control is determined solely by its path and the authenticated user's ID (`request.auth.uid`). There are no `get()` calls required to determine access, which maintains atomic operations and simplifies debugging.\n\nQAPs Support: The structure supports the required QAPs through:\n\n*   Segregation: Different data types (users, habits, habitLogs) are stored in separate collections, each with specific security requirements. This prevents mixing data with different access needs in the same collection.\n*   Path-Based Ownership: Access control is primarily based on the path (e.g., `/users/{userId}/habits/{habitId}`), making it straightforward to write security rules that enforce ownership.\n\nThis structure supports secure list operations because security rules can easily restrict access based on the `userId` present in the path, ensuring that users can only list habits and habitLogs that they own."
+  }
+}
