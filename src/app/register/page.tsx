@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, User, Mail, Lock } from 'lucide-react';
+import { CheckCircle2, User, Mail, Lock, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -27,6 +28,12 @@ export default function RegisterPage() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
+  const validateStrongPassword = (password: string) => {
+    // At least 8 characters, one uppercase, one lowercase, one number, one special character
+    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return strongRegex.test(password);
+  };
+
   const getFriendlyErrorMessage = (error: any) => {
     switch (error.code) {
       case 'auth/email-already-in-use':
@@ -34,7 +41,7 @@ export default function RegisterPage() {
       case 'auth/invalid-email':
         return "Please enter a valid email address.";
       case 'auth/weak-password':
-        return "Password is too weak. Please use at least 6 characters.";
+        return "The password is too weak. Please ensure it meets all the security requirements.";
       case 'auth/network-request-failed':
         return "Network error. Please check your connection.";
       default:
@@ -45,7 +52,6 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Client-side validation
     if (!name.trim()) {
       toast({
         title: "Name Required",
@@ -58,16 +64,16 @@ export default function RegisterPage() {
     if (!validateEmail(email)) {
       toast({
         title: "Invalid Email",
-        description: "Please enter a valid email address (e.g., name@example.com).",
+        description: "Please enter a valid email address.",
         variant: "destructive"
       });
       return;
     }
 
-    if (password.length < 6) {
+    if (!validateStrongPassword(password)) {
       toast({
         title: "Weak Password",
-        description: "Password must be at least 6 characters long.",
+        description: "Your password must be at least 8 characters long and include uppercase, lowercase, numbers, and special characters.",
         variant: "destructive"
       });
       return;
@@ -80,7 +86,6 @@ export default function RegisterPage() {
       
       await updateProfile(user, { displayName: name });
       
-      // Create the user profile in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         id: user.uid,
         name,
@@ -105,6 +110,20 @@ export default function RegisterPage() {
     }
   };
 
+  // Visual password requirement checks
+  const hasMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[@$!%*?&]/.test(password);
+
+  const Requirement = ({ met, text }: { met: boolean, text: string }) => (
+    <div className={cn("flex items-center gap-1.5 text-[11px] transition-colors", met ? "text-green-500" : "text-muted-foreground")}>
+      {met ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+      <span>{text}</span>
+    </div>
+  );
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-secondary/30 p-4">
       <Card className="w-full max-w-md">
@@ -114,7 +133,7 @@ export default function RegisterPage() {
             <span className="text-2xl font-bold font-headline">Habitual</span>
           </div>
           <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-          <CardDescription>Enter your details below to get started</CardDescription>
+          <CardDescription>Secure your routine with a strong password</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
@@ -160,7 +179,14 @@ export default function RegisterPage() {
                   required 
                 />
               </div>
-              <p className="text-[10px] text-muted-foreground">Minimum 6 characters</p>
+              
+              <div className="grid grid-cols-2 gap-y-1 gap-x-4 pt-1">
+                <Requirement met={hasMinLength} text="Min 8 characters" />
+                <Requirement met={hasUppercase} text="Uppercase letter" />
+                <Requirement met={hasLowercase} text="Lowercase letter" />
+                <Requirement met={hasNumber} text="Number" />
+                <Requirement met={hasSpecial} text="Special (@$!%*?&)" />
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Create Account"}
